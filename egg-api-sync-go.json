@@ -1,0 +1,290 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PANEL",
+    "meta": {
+        "version": "PLCN_v3",
+        "update_url": null
+    },
+    "exported_at": "2026-10-08T13:15:00+00:00",
+    "name": "API Sync Go",
+    "author": "hi@vhming.com",
+    "uuid": "a7f93c21-5e82-4b67-9d41-38f29c4e10b5",
+    "description": "High-performance Go API service for syncing user profiles, avatars, and data from 7gc-portal MariaDB with Redis caching.",
+    "icon": "",
+    "tags": [
+        "golang",
+        "api",
+        "sync",
+        "7gc",
+        "redis",
+        "mariadb"
+    ],
+    "features": null,
+    "docker_images": {
+        "Alpine (Yolks)": "ghcr.io/parkervcp/yolks:alpine",
+        "Debian (Yolks)": "ghcr.io/parkervcp/yolks:debian",
+        "Go 1.23 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.23"
+    },
+    "file_denylist": [],
+    "startup_commands": {
+        "Default": "if [ \"${AUTO_UPDATE}\" = \"1\" ] || [ ! -f ./${SERVER_BINARY} ]; then if [ -n \"${DOWNLOAD_URL}\" ]; then echo \"[Startup] Downloading / Updating ${SERVER_BINARY}...\"; if command -v wget >/dev/null 2>&1; then wget -q -O ./${SERVER_BINARY} ${DOWNLOAD_URL}; elif command -v curl >/dev/null 2>&1; then curl -sSL -o ./${SERVER_BINARY} ${DOWNLOAD_URL}; fi; fi; fi; chmod +x ./${SERVER_BINARY} && ./${SERVER_BINARY} -port ${SERVER_PORT}"
+    },
+    "config": {
+        "files": "{\n    \".env\": {\n        \"parser\": \"properties\",\n        \"find\": {\n            \"PORT\": \"{{server.allocations.default.port}}\",\n            \"API_KEYS\": \"{{env.API_KEYS}}\",\n            \"ALLOWED_DOMAIN\": \"{{env.ALLOWED_DOMAIN}}\",\n            \"DATABASE_URL\": \"{{env.DATABASE_URL}}\",\n            \"REDIS_URL\": \"{{env.REDIS_URL}}\",\n            \"LEGACY_MODE\": \"{{env.LEGACY_MODE}}\",\n            \"USER_CACHE_TTL\": \"{{env.USER_CACHE_TTL}}\",\n            \"NEGATIVE_CACHE_TTL\": \"{{env.NEGATIVE_CACHE_TTL}}\",\n            \"AVATAR_CACHE_TTL\": \"{{env.AVATAR_CACHE_TTL}}\",\n            \"AVATAR_SIZE\": \"{{env.AVATAR_SIZE}}\",\n            \"AVATAR_QUALITY\": \"{{env.AVATAR_QUALITY}}\",\n            \"DB_MAX_OPEN_CONNS\": \"{{env.DB_MAX_OPEN_CONNS}}\",\n            \"DB_MAX_IDLE_CONNS\": \"{{env.DB_MAX_IDLE_CONNS}}\",\n            \"DB_CONN_MAX_LIFETIME\": \"{{env.DB_CONN_MAX_LIFETIME}}\",\n            \"DB_CONN_MAX_IDLE_TIME\": \"{{env.DB_CONN_MAX_IDLE_TIME}}\",\n            \"LOG_LEVEL\": \"{{env.LOG_LEVEL}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": \"server starting\"\n}",
+        "logs": "[]",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/ash\napk add --no-cache curl ca-certificates\n\ncd /mnt/server\n\nif [ -n \"${DOWNLOAD_URL}\" ]; then\n    echo \"[Installer] Downloading Linux production binary from GitHub...\"\n    curl -sSL -o ${SERVER_BINARY} ${DOWNLOAD_URL}\n    chmod +x ${SERVER_BINARY}\nfi\n\nif [ ! -f .env ]; then\n    cat << 'EOF' > .env\nPORT=${SERVER_PORT}\nAPI_KEYS=${API_KEYS}\nALLOWED_DOMAIN=${ALLOWED_DOMAIN}\nDATABASE_URL=${DATABASE_URL}\nREDIS_URL=${REDIS_URL}\nLEGACY_MODE=${LEGACY_MODE}\nUSER_CACHE_TTL=${USER_CACHE_TTL}\nNEGATIVE_CACHE_TTL=${NEGATIVE_CACHE_TTL}\nAVATAR_CACHE_TTL=${AVATAR_CACHE_TTL}\nAVATAR_SIZE=${AVATAR_SIZE}\nAVATAR_QUALITY=${AVATAR_QUALITY}\nDB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS}\nDB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS}\nDB_CONN_MAX_LIFETIME=${DB_CONN_MAX_LIFETIME}\nDB_CONN_MAX_IDLE_TIME=${DB_CONN_MAX_IDLE_TIME}\nLOG_LEVEL=${LOG_LEVEL}\nEOF\nfi\n\necho \"-----------------------------------------\"\necho \"Installation completed! Binary: ${SERVER_BINARY}\"\necho \"-----------------------------------------\"",
+            "container": "ghcr.io/parkervcp/installers:alpine",
+            "entrypoint": "/bin/ash"
+        }
+    },
+    "variables": [
+        {
+            "sort": 1,
+            "name": "Server Binary Name",
+            "description": "The executable binary name.",
+            "env_variable": "SERVER_BINARY",
+            "default_value": "api-sync-go",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 2,
+            "name": "Auto Update Binary on Start",
+            "description": "Set to 1 to automatically download latest release binary on server restart.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "boolean"
+            ]
+        },
+        {
+            "sort": 3,
+            "name": "Binary Download URL",
+            "description": "Direct download URL for the Linux x86_64 binary from GitHub Releases or raw repository.",
+            "env_variable": "DOWNLOAD_URL",
+            "default_value": "https://github.com/zhw1nq/api-sync-go/raw/main/bin/api-sync-go",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:256"
+            ]
+        },
+        {
+            "sort": 4,
+            "name": "API Keys",
+            "description": "Comma-separated API keys for X-API-KEY client authentication.",
+            "env_variable": "API_KEYS",
+            "default_value": "change-me-key-1,change-me-key-2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string"
+            ]
+        },
+        {
+            "sort": 5,
+            "name": "Allowed Origin / Domain",
+            "description": "Allowed domain for CORS requests (e.g. localhost:3000, 7gc.vn, or comma-separated). NO fallback.",
+            "env_variable": "ALLOWED_DOMAIN",
+            "default_value": "localhost:3000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string"
+            ]
+        },
+        {
+            "sort": 6,
+            "name": "MariaDB Connection URL",
+            "description": "MariaDB connection string (mysql://user:password@host:port/dbname). READ-ONLY recommended.",
+            "env_variable": "DATABASE_URL",
+            "default_value": "mysql://user:password@127.0.0.1:3306/7c_portal",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string"
+            ]
+        },
+        {
+            "sort": 7,
+            "name": "Redis Connection URL",
+            "description": "Redis connection URL (e.g. redis://127.0.0.1:6379). Note: URL-encode '@' in passwords as '%40'.",
+            "env_variable": "REDIS_URL",
+            "default_value": "redis://127.0.0.1:6379",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string"
+            ]
+        },
+        {
+            "sort": 8,
+            "name": "Legacy Database Mode",
+            "description": "Read legacy database tables (users, user_steam_profiles, user_discord_profiles). Set to true or false.",
+            "env_variable": "LEGACY_MODE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:true,false"
+            ]
+        },
+        {
+            "sort": 9,
+            "name": "User Profile Cache TTL",
+            "description": "Cache duration for fetched user profiles (e.g. 5m, 10m, 1h).",
+            "env_variable": "USER_CACHE_TTL",
+            "default_value": "5m",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        },
+        {
+            "sort": 10,
+            "name": "Negative Cache TTL",
+            "description": "Cache duration for non-existent users in DB (e.g. 1m, 2m).",
+            "env_variable": "NEGATIVE_CACHE_TTL",
+            "default_value": "1m",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        },
+        {
+            "sort": 11,
+            "name": "Avatar Cache TTL",
+            "description": "Cache duration for avatar image bytes (e.g. 30m, 1h).",
+            "env_variable": "AVATAR_CACHE_TTL",
+            "default_value": "30m",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        },
+        {
+            "sort": 12,
+            "name": "Avatar Output Size",
+            "description": "Avatar dimension width/height in pixels.",
+            "env_variable": "AVATAR_SIZE",
+            "default_value": "184",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "numeric",
+                "between:32,1024"
+            ]
+        },
+        {
+            "sort": 13,
+            "name": "Avatar JPEG Quality",
+            "description": "JPEG compression quality for avatars (1-100).",
+            "env_variable": "AVATAR_QUALITY",
+            "default_value": "80",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "numeric",
+                "between:1,100"
+            ]
+        },
+        {
+            "sort": 14,
+            "name": "Log Level",
+            "description": "Logging level: debug, info, warn, error.",
+            "env_variable": "LOG_LEVEL",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:debug,info,warn,error"
+            ]
+        },
+        {
+            "sort": 15,
+            "name": "DB Max Open Connections",
+            "description": "Maximum open connections to MariaDB pool.",
+            "env_variable": "DB_MAX_OPEN_CONNS",
+            "default_value": "25",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "numeric"
+            ]
+        },
+        {
+            "sort": 16,
+            "name": "DB Max Idle Connections",
+            "description": "Maximum idle connections kept in MariaDB pool.",
+            "env_variable": "DB_MAX_IDLE_CONNS",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "numeric"
+            ]
+        },
+        {
+            "sort": 17,
+            "name": "DB Connection Max Lifetime",
+            "description": "Maximum lifetime of a database connection (e.g. 5m, 10m).",
+            "env_variable": "DB_CONN_MAX_LIFETIME",
+            "default_value": "5m",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        },
+        {
+            "sort": 18,
+            "name": "DB Connection Max Idle Time",
+            "description": "Maximum idle time before closing a DB connection (e.g. 2m, 5m).",
+            "env_variable": "DB_CONN_MAX_IDLE_TIME",
+            "default_value": "2m",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        }
+    ]
+}
