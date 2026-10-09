@@ -66,8 +66,8 @@ func Load() (*Config, error) {
 		AvatarCacheTTL:    parseDuration("AVATAR_CACHE_TTL", 30*time.Minute),
 		AvatarSize:        parseInt("AVATAR_SIZE", 184),
 		AvatarQuality:     parseInt("AVATAR_QUALITY", 80),
-		DBMaxOpenConns:    parseInt("DB_MAX_OPEN_CONNS", 25),
-		DBMaxIdleConns:    parseInt("DB_MAX_IDLE_CONNS", 10),
+		DBMaxOpenConns:    parseInt("DB_MAX_OPEN_CONNS", 50),
+		DBMaxIdleConns:    parseInt("DB_MAX_IDLE_CONNS", 25),
 		DBConnMaxLifetime: parseDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		DBConnMaxIdleTime: parseDuration("DB_CONN_MAX_IDLE_TIME", 2*time.Minute),
 		LogLevel:          strings.ToLower(getEnvOrDefault("LOG_LEVEL", "info")),
@@ -126,7 +126,7 @@ func (c *Config) ParseDSN() (string, error) {
 		dbName = dbName[:qIdx]
 	}
 
-	return fmt.Sprintf("%s@tcp(%s)/%s?parseTime=true&loc=Local&charset=utf8mb4&interpolateParams=true", userPass, hostPort, dbName), nil
+	return fmt.Sprintf("%s@tcp(%s)/%s?parseTime=true&loc=Local&charset=utf8mb4&interpolateParams=true&timeout=5s&readTimeout=5s&writeTimeout=5s", userPass, hostPort, dbName), nil
 }
 
 func getRequiredEnv(key string) (string, error) {

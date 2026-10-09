@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"api-sync-go/internal/cache"
 	"api-sync-go/internal/config"
@@ -81,7 +82,9 @@ func (s *LegacyUserService) GetBySteamID(ctx context.Context, steamID64 string) 
 		var displayName string
 		var discordID sql.NullString
 
-		qErr := s.db.QueryRowContext(ctx, legacyUserQuery, steamID64).Scan(&displayName, &discordID)
+		dbCtx, dbCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer dbCancel()
+		qErr := s.db.QueryRowContext(dbCtx, legacyUserQuery, steamID64).Scan(&displayName, &discordID)
 		if qErr != nil {
 			if errors.Is(qErr, sql.ErrNoRows) {
 				_ = s.cache.SetUserWithTTL(ctx, steamID64, "__NOT_FOUND__", s.cfg.NegativeCacheTTL)

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"api-sync-go/internal/cache"
 	"api-sync-go/internal/config"
@@ -74,7 +75,9 @@ func (s *UserService) GetBySteamID(ctx context.Context, steamID64 string) (*mode
 		var name string
 		var image sql.NullString
 
-		qErr := s.db.QueryRowContext(ctx, userQuery, steamID64).Scan(&name, &image)
+		dbCtx, dbCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer dbCancel()
+		qErr := s.db.QueryRowContext(dbCtx, userQuery, steamID64).Scan(&name, &image)
 		if qErr != nil {
 			if errors.Is(qErr, sql.ErrNoRows) {
 				_ = s.cache.SetUserWithTTL(ctx, steamID64, "__NOT_FOUND__", s.cfg.NegativeCacheTTL)

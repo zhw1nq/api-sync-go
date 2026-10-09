@@ -38,11 +38,12 @@ func Connect(cfg *config.Config) (*RedisClient, error) {
 		return nil, fmt.Errorf("parse redis URL: %w", err)
 	}
 
-	opts.PoolSize = 50
-	opts.MinIdleConns = 10
+	opts.PoolSize = 100
+	opts.MinIdleConns = 20
 	opts.DialTimeout = 3 * time.Second
 	opts.ReadTimeout = 2 * time.Second
 	opts.WriteTimeout = 2 * time.Second
+	opts.PoolTimeout = 4 * time.Second
 
 	client := redis.NewClient(opts)
 

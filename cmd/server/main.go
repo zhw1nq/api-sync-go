@@ -95,7 +95,7 @@ func main() {
 	// Init handlers
 	syncHandler := handler.NewSyncHandler(userProvider, logger)
 	avatarHandler := handler.NewAvatarHandler(userProvider, imageService, logger)
-	healthHandler := handler.NewHealthHandler(db, rc)
+	healthHandler := handler.NewHealthHandler(db, rc, logger)
 
 	// Setup API router (protected by RateLimit and APIKeyAuth)
 	apiMux := http.NewServeMux()
@@ -111,8 +111,9 @@ func main() {
 	rootMux.HandleFunc("GET /health", healthHandler.Check)
 	rootMux.Handle("/api/sync/", protectedAPI)
 
-	// Global middleware chain: Logging -> CORS -> Router
+	// Global middleware chain: Logging -> CORS -> StripTrailingSlash -> Router
 	var h http.Handler = rootMux
+	h = stripTrailingSlash(h)
 	h = middleware.CORS(cfg.AllowedDomains)(h)
 	h = middleware.Logging(logger)(h)
 
@@ -151,4 +152,17 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+}
+
+// stripTrailingSlash removes trailing slash from path (e.g. /api/sync/123/ -> /api/sync/123) to prevent 404
+func stripTrailingSlash(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(r.URL.Path) > 1 && strings.HasSuffix(r.URL.Path, "/") {
+			r.URL.Path = strings.TrimSuffix(r.URL.Path, "/")
+			if r.URL.RawPath != "" {
+				r.URL.RawPath = strings.TrimSuffix(r.URL.RawPath, "/")
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
