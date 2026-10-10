@@ -89,19 +89,15 @@ func main() {
 	avatarHandler := handler.NewAvatarHandler(userProvider, imageService, logger)
 	healthHandler := handler.NewHealthHandler(db, rc, logger)
 
-	apiMux := http.NewServeMux()
-	apiMux.HandleFunc("GET /api/sync/{steamid}", syncHandler.GetUser)
-	apiMux.HandleFunc("GET /api/sync/{steamid}/avatar.jpg", avatarHandler.GetAvatar)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", healthHandler.Check)
+	mux.HandleFunc("GET /api/sync/{steamid}", syncHandler.GetUser)
+	mux.HandleFunc("GET /api/sync/{steamid}/avatar.jpg", avatarHandler.GetAvatar)
+	mux.HandleFunc("/", permissionDenied)
 
-	var protectedAPI http.Handler = apiMux
-	protectedAPI = middleware.RateLimit(rc, cfg.RateLimitMax, cfg.RateLimitWindow)(protectedAPI)
-	protectedAPI = middleware.APIKeyAuth(cfg.APIKeys)(protectedAPI)
-
-	rootMux := http.NewServeMux()
-	rootMux.HandleFunc("GET /health", healthHandler.Check)
-	rootMux.Handle("/api/sync/", protectedAPI)
-
-	var h http.Handler = rootMux
+	var h http.Handler = mux
+	h = middleware.APIKeyAuth(cfg.APIKeys, cfg.RequiredUserAgent)(h)
+	h = middleware.RateLimit(rc, cfg.RateLimitMax, cfg.RateLimitWindow)(h)
 	h = stripTrailingSlash(h)
 	h = middleware.CORS(cfg.AllowedDomains)(h)
 	h = middleware.Logging(logger)(h)
@@ -138,6 +134,12 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+}
+
+func permissionDenied(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	w.Write([]byte(`{"success":false,"error":"permission denied","code":"PERMISSION_DENIED"}`))
 }
 
 func stripTrailingSlash(next http.Handler) http.Handler {

@@ -8,9 +8,14 @@ import (
 	"api-sync-go/internal/model"
 )
 
-func APIKeyAuth(validKeys []string) func(http.Handler) http.Handler {
+func APIKeyAuth(validKeys []string, requiredUserAgent string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if subtle.ConstantTimeCompare([]byte(r.UserAgent()), []byte(requiredUserAgent)) != 1 {
+				writeError(w, http.StatusUnauthorized, "invalid user agent", "UNAUTHORIZED")
+				return
+			}
+
 			apiKey := r.Header.Get("X-API-KEY")
 			if apiKey == "" {
 				writeError(w, http.StatusUnauthorized, "missing X-API-KEY header", "UNAUTHORIZED")

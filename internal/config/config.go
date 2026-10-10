@@ -14,6 +14,8 @@ type Config struct {
 	APIKeys        []string
 	AllowedDomains []string
 
+	RequiredUserAgent string
+
 	DatabaseURL string
 	RedisURL    string
 
@@ -60,9 +62,15 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("missing required environment variable: ALLOWED_DOMAIN")
 	}
 
+	requiredUA := os.Getenv("REQUIRED_USER_AGENT")
+	if requiredUA == "" {
+		return nil, fmt.Errorf("missing required environment variable: REQUIRED_USER_AGENT")
+	}
+
 	cfg := &Config{
 		DatabaseURL:       dbURL,
 		RedisURL:          getEnvOrDefault("REDIS_URL", "redis://localhost:6379"),
+		RequiredUserAgent: requiredUA,
 		UserCacheTTL:      parseDuration("USER_CACHE_TTL", 5*time.Minute),
 		NegativeCacheTTL:  parseDuration("NEGATIVE_CACHE_TTL", 1*time.Minute),
 		AvatarCacheTTL:    parseDuration("AVATAR_CACHE_TTL", 30*time.Minute),
