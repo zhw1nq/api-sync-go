@@ -31,9 +31,16 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer wg.Done()
-		dbCtx, cancel := context.WithTimeout(r.Context(), 2500*time.Millisecond)
-		defer cancel()
-		if err := h.db.PingContext(dbCtx); err != nil {
+		dbCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		err := h.db.PingContext(dbCtx)
+		cancel()
+		if err != nil {
+			// Retry once in case a stale idle connection in the pool was closed by the first ping
+			retryCtx, retryCancel := context.WithTimeout(context.Background(), 3*time.Second)
+			err = h.db.PingContext(retryCtx)
+			retryCancel()
+		}
+		if err != nil {
 			dbStatus = "disconnected"
 			if h.logger != nil {
 				h.logger.Warn("health check DB ping failed", slog.String("error", err.Error()))
@@ -43,9 +50,10 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer wg.Done()
-		redisCtx, cancel := context.WithTimeout(r.Context(), 2500*time.Millisecond)
-		defer cancel()
-		if err := h.cache.Ping(redisCtx); err != nil {
+		redisCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		err := h.cache.Ping(redisCtx)
+		cancel()
+		if err != nil {
 			redisStatus = "disconnected"
 			if h.logger != nil {
 				h.logger.Warn("health check Redis ping failed", slog.String("error", err.Error()))

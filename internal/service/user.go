@@ -72,7 +72,11 @@ func (s *UserService) GetBySteamID(ctx context.Context, steamID64 string) (*mode
 		var name string
 		var image sql.NullString
 
-		dbCtx, dbCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		queryTimeout := s.cfg.DBQueryTimeout
+		if queryTimeout <= 0 {
+			queryTimeout = 5 * time.Second
+		}
+		dbCtx, dbCancel := context.WithTimeout(context.Background(), queryTimeout)
 		defer dbCancel()
 		qErr := s.db.QueryRowContext(dbCtx, userQuery, steamID64).Scan(&name, &image)
 		if qErr != nil {

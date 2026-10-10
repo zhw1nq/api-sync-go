@@ -67,6 +67,10 @@ func main() {
 	defer db.Close()
 	logger.Info("database connected")
 
+	keepAliveCtx, cancelKeepAlive := context.WithCancel(context.Background())
+	defer cancelKeepAlive()
+	database.StartKeepAlive(keepAliveCtx, db, cfg.DBKeepAliveInterval, logger)
+
 	rc, err := cache.Connect(cfg)
 	if err != nil {
 		logger.Error("failed to connect redis", slog.String("error", err.Error()))

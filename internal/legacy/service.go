@@ -75,7 +75,11 @@ func (s *LegacyUserService) GetBySteamID(ctx context.Context, steamID64 string) 
 		var displayName string
 		var discordID sql.NullString
 
-		dbCtx, dbCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		queryTimeout := s.cfg.DBQueryTimeout
+		if queryTimeout <= 0 {
+			queryTimeout = 5 * time.Second
+		}
+		dbCtx, dbCancel := context.WithTimeout(context.Background(), queryTimeout)
 		defer dbCancel()
 		qErr := s.db.QueryRowContext(dbCtx, legacyUserQuery, steamID64).Scan(&displayName, &discordID)
 		if qErr != nil {

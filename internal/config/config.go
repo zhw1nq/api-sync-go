@@ -29,10 +29,12 @@ type Config struct {
 	RateLimitMax    int
 	RateLimitWindow time.Duration
 
-	DBMaxOpenConns    int
-	DBMaxIdleConns    int
-	DBConnMaxLifetime time.Duration
-	DBConnMaxIdleTime time.Duration
+	DBMaxOpenConns      int
+	DBMaxIdleConns      int
+	DBConnMaxLifetime   time.Duration
+	DBConnMaxIdleTime   time.Duration
+	DBQueryTimeout      time.Duration
+	DBKeepAliveInterval time.Duration
 
 	LogLevel   string
 	LegacyMode bool
@@ -78,12 +80,14 @@ func Load() (*Config, error) {
 		AvatarQuality:     parseInt("AVATAR_QUALITY", 85),
 		RateLimitMax:      parseInt("RATELIMIT_MAX", 300),
 		RateLimitWindow:   parseDuration("RATELIMIT_WINDOW", 1*time.Minute),
-		DBMaxOpenConns:    parseInt("DB_MAX_OPEN_CONNS", 50),
-		DBMaxIdleConns:    parseInt("DB_MAX_IDLE_CONNS", 25),
-		DBConnMaxLifetime: parseDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
-		DBConnMaxIdleTime: parseDuration("DB_CONN_MAX_IDLE_TIME", 2*time.Minute),
-		LogLevel:          strings.ToLower(getEnvOrDefault("LOG_LEVEL", "info")),
-		LegacyMode:        strings.EqualFold(os.Getenv("LEGACY_MODE"), "true"),
+		DBMaxOpenConns:      parseInt("DB_MAX_OPEN_CONNS", 50),
+		DBMaxIdleConns:      parseInt("DB_MAX_IDLE_CONNS", 25),
+		DBConnMaxLifetime:   parseDuration("DB_CONN_MAX_LIFETIME", 0),
+		DBConnMaxIdleTime:   parseDuration("DB_CONN_MAX_IDLE_TIME", 0),
+		DBQueryTimeout:      parseDuration("DB_QUERY_TIMEOUT", 5*time.Second),
+		DBKeepAliveInterval: parseDuration("DB_KEEPALIVE_INTERVAL", 20*time.Second),
+		LogLevel:            strings.ToLower(getEnvOrDefault("LOG_LEVEL", "info")),
+		LegacyMode:          strings.EqualFold(os.Getenv("LEGACY_MODE"), "true"),
 	}
 
 	for _, k := range strings.Split(keys, ",") {
@@ -134,7 +138,7 @@ func (c *Config) ParseDSN() (string, error) {
 		dbName = dbName[:qIdx]
 	}
 
-	return fmt.Sprintf("%s@tcp(%s)/%s?parseTime=true&loc=Local&charset=utf8mb4&interpolateParams=true&timeout=5s&readTimeout=5s&writeTimeout=5s", userPass, hostPort, dbName), nil
+	return fmt.Sprintf("%s@tcp(%s)/%s?parseTime=true&loc=Local&charset=utf8mb4&interpolateParams=true&timeout=5s&readTimeout=10s&writeTimeout=10s", userPass, hostPort, dbName), nil
 }
 
 func getRequiredEnv(key string) (string, error) {

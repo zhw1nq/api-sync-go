@@ -77,8 +77,10 @@ docker run -p 8080:8080 --env-file .env api-sync-go -port 8080
 | `AVATAR_QUALITY` | No | `80` | Initial JPEG quality |
 | `DB_MAX_OPEN_CONNS` | No | `25` | Tối đa kết nối mở tới MariaDB |
 | `DB_MAX_IDLE_CONNS` | No | `10` | Số kết nối rảnh rỗi giữ trong pool |
-| `DB_CONN_MAX_LIFETIME` | No | `5m` | Thời gian sống tối đa của một kết nối DB |
-| `DB_CONN_MAX_IDLE_TIME` | No | `2m` | Thời gian rảnh rỗi tối đa trước khi đóng kết nối |
+| `DB_CONN_MAX_LIFETIME` | No | `0` | Thời gian sống tối đa của một kết nối DB (`0` = vĩnh viễn, không bao giờ ngắt) |
+| `DB_CONN_MAX_IDLE_TIME` | No | `0` | Thời gian rảnh rỗi trước khi đóng kết nối (`0` = duy trì vĩnh viễn, không bao giờ ngắt do idle) |
+| `DB_QUERY_TIMEOUT` | No | `5s` | Timeout tối đa cho mỗi câu query DB |
+| `DB_KEEPALIVE_INTERVAL` | No | `20s` | Chu kỳ ping ngầm giữ kết nối DB luôn ấm và sống qua firewall |
 | `LOG_LEVEL` | No | `info` | Cấp độ ghi log (`debug`, `info`, `warn`, `error`) |
 | `LEGACY_MODE` | No | `false` | Bật chế độ đọc DB cũ (`users`, `user_steam_profiles`, `user_discord_profiles`) |
 
