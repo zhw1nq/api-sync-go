@@ -316,9 +316,9 @@
         {
             "sort": 18,
             "name": "DB Connection Max Lifetime",
-            "description": "Maximum lifetime of a database connection (e.g. 5m, 10m).",
+            "description": "Maximum lifetime of a database connection. Set to 0 to keep connections alive forever.",
             "env_variable": "DB_CONN_MAX_LIFETIME",
-            "default_value": "5m",
+            "default_value": "0",
             "user_viewable": true,
             "user_editable": true,
             "rules": [
@@ -330,9 +330,37 @@
         {
             "sort": 19,
             "name": "DB Connection Max Idle Time",
-            "description": "Maximum idle time before closing a DB connection (e.g. 2m, 5m).",
+            "description": "Maximum idle time before closing a DB connection. Set to 0 to never close idle connections.",
             "env_variable": "DB_CONN_MAX_IDLE_TIME",
-            "default_value": "2m",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        },
+        {
+            "sort": 20,
+            "name": "DB Query Timeout",
+            "description": "Timeout for each database query (e.g. 5s, 10s).",
+            "env_variable": "DB_QUERY_TIMEOUT",
+            "default_value": "5s",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:16"
+            ]
+        },
+        {
+            "sort": 21,
+            "name": "DB Keep-Alive Interval",
+            "description": "Interval for background ping to keep DB connections alive through firewalls (e.g. 20s, 30s).",
+            "env_variable": "DB_KEEPALIVE_INTERVAL",
+            "default_value": "20s",
             "user_viewable": true,
             "user_editable": true,
             "rules": [

@@ -36,14 +36,26 @@ func Connect(cfg *config.Config) (*sql.DB, error) {
 		db.SetConnMaxIdleTime(0) // 0: never close due to idle time
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("ping database: %w", err)
+	// Retry ping up to 5 times with exponential backoff to handle
+	// transient network issues (DNS, slow WAN, DB cold start).
+	const maxRetries = 5
+	backoff := 2 * time.Second
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		lastErr = db.PingContext(ctx)
+		cancel()
+		if lastErr == nil {
+			return db, nil
+		}
+		if i < maxRetries-1 {
+			time.Sleep(backoff)
+			backoff *= 2 // 2s -> 4s -> 8s -> 16s
+		}
 	}
 
-	return db, nil
+	_ = db.Close()
+	return nil, fmt.Errorf("ping database after %d retries: %w", maxRetries, lastErr)
 }
 
 // StartKeepAlive runs a background goroutine that periodically pings the database.
