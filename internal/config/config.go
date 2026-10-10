@@ -24,6 +24,9 @@ type Config struct {
 	AvatarSize    int
 	AvatarQuality int
 
+	RateLimitMax    int
+	RateLimitWindow time.Duration
+
 	DBMaxOpenConns    int
 	DBMaxIdleConns    int
 	DBConnMaxLifetime time.Duration
@@ -46,7 +49,6 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	// Đọc ALLOWED_DOMAIN bắt buộc từ env
 	domainRaw := os.Getenv("ALLOWED_DOMAIN")
 	if domainRaw == "" {
 		domainRaw = os.Getenv("ALLOWED_DOMAINS")
@@ -65,7 +67,9 @@ func Load() (*Config, error) {
 		NegativeCacheTTL:  parseDuration("NEGATIVE_CACHE_TTL", 1*time.Minute),
 		AvatarCacheTTL:    parseDuration("AVATAR_CACHE_TTL", 30*time.Minute),
 		AvatarSize:        parseInt("AVATAR_SIZE", 184),
-		AvatarQuality:     parseInt("AVATAR_QUALITY", 80),
+		AvatarQuality:     parseInt("AVATAR_QUALITY", 85),
+		RateLimitMax:      parseInt("RATELIMIT_MAX", 300),
+		RateLimitWindow:   parseDuration("RATELIMIT_WINDOW", 1*time.Minute),
 		DBMaxOpenConns:    parseInt("DB_MAX_OPEN_CONNS", 50),
 		DBMaxIdleConns:    parseInt("DB_MAX_IDLE_CONNS", 25),
 		DBConnMaxLifetime: parseDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
@@ -97,14 +101,11 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// ParseDSN converts mysql://user:pass@host:port/dbname to Go DSN format.
 func (c *Config) ParseDSN() (string, error) {
 	raw := c.DatabaseURL
 
-	// Strip "mysql://" prefix
 	raw = strings.TrimPrefix(raw, "mysql://")
 
-	// Split user:pass@host:port/dbname
 	atIdx := strings.LastIndex(raw, "@")
 	if atIdx < 0 {
 		return "", fmt.Errorf("invalid DATABASE_URL: missing @")
@@ -121,7 +122,6 @@ func (c *Config) ParseDSN() (string, error) {
 	hostPort := hostDBPart[:slashIdx]
 	dbName := hostDBPart[slashIdx+1:]
 
-	// Trim query params from dbName if present
 	if qIdx := strings.Index(dbName, "?"); qIdx >= 0 {
 		dbName = dbName[:qIdx]
 	}

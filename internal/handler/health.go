@@ -29,7 +29,6 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	// Check DB in parallel with dedicated timeout
 	go func() {
 		defer wg.Done()
 		dbCtx, cancel := context.WithTimeout(r.Context(), 2500*time.Millisecond)
@@ -42,7 +41,6 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Check Redis in parallel with dedicated timeout
 	go func() {
 		defer wg.Done()
 		redisCtx, cancel := context.WithTimeout(r.Context(), 2500*time.Millisecond)

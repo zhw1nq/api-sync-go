@@ -45,7 +45,6 @@ const userQuery = `
 `
 
 func (s *UserService) GetBySteamID(ctx context.Context, steamID64 string) (*model.UserInfo, error) {
-	// 1. Check cache
 	cached, err := s.cache.GetUser(ctx, steamID64)
 	if err == nil && cached != "" {
 		if cached == "__NOT_FOUND__" {
@@ -59,9 +58,7 @@ func (s *UserService) GetBySteamID(ctx context.Context, steamID64 string) (*mode
 		}
 	}
 
-	// 2. Query with singleflight to prevent cache stampede
 	val, err, _ := s.sf.Do(steamID64, func() (any, error) {
-		// Double-check cache
 		if recheck, rErr := s.cache.GetUser(ctx, steamID64); rErr == nil && recheck != "" {
 			if recheck == "__NOT_FOUND__" {
 				return nil, ErrUserNotFound

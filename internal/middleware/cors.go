@@ -87,8 +87,6 @@ func (m *corsMatcher) isAllowed(raw string) bool {
 	return false
 }
 
-// CORS validates Origin and Referer against allowed domains/origins,
-// sets standard CORS response headers, and handles preflight OPTIONS requests.
 func CORS(allowedDomains []string) func(http.Handler) http.Handler {
 	matcher := newCORSMatcher(allowedDomains)
 
@@ -97,7 +95,6 @@ func CORS(allowedDomains []string) func(http.Handler) http.Handler {
 			origin := r.Header.Get("Origin")
 			referer := r.Header.Get("Referer")
 
-			// Check Origin header if present
 			if origin != "" {
 				if !matcher.isAllowed(origin) {
 					writeError(w, http.StatusForbidden, fmt.Sprintf("origin not allowed: %s", origin), "FORBIDDEN_ORIGIN")
@@ -107,14 +104,12 @@ func CORS(allowedDomains []string) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Vary", "Origin")
 			} else if referer != "" {
-				// If Origin is not sent (e.g. <img> tags), validate Referer domain
 				if !matcher.isAllowed(referer) {
 					writeError(w, http.StatusForbidden, "referer domain not allowed", "FORBIDDEN_REFERER")
 					return
 				}
 			}
 
-			// Handle preflight OPTIONS request
 			if r.Method == http.MethodOptions {
 				w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 				w.Header().Set("Access-Control-Allow-Headers", "X-API-KEY, Content-Type, Authorization")

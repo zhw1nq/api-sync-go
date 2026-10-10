@@ -17,10 +17,6 @@ import (
 	"api-sync-go/pkg/singleflight"
 )
 
-// LegacyUserService reads user data from legacy tables:
-// - users (display_name, status, banned)
-// - user_steam_profiles (steam_id)
-// - user_discord_profiles (discord_id)
 type LegacyUserService struct {
 	db     *sql.DB
 	cache  *cache.RedisClient
@@ -52,7 +48,6 @@ const legacyUserQuery = `
 `
 
 func (s *LegacyUserService) GetBySteamID(ctx context.Context, steamID64 string) (*model.UserInfo, error) {
-	// 1. Check Redis cache
 	cached, err := s.cache.GetUser(ctx, steamID64)
 	if err == nil && cached != "" {
 		if cached == "__NOT_FOUND__" {
@@ -66,9 +61,7 @@ func (s *LegacyUserService) GetBySteamID(ctx context.Context, steamID64 string) 
 		}
 	}
 
-	// 2. Query with singleflight to prevent cache stampede
 	val, err, _ := s.sf.Do(steamID64, func() (any, error) {
-		// Double-check cache
 		if recheck, rErr := s.cache.GetUser(ctx, steamID64); rErr == nil && recheck != "" {
 			if recheck == "__NOT_FOUND__" {
 				return nil, service.ErrUserNotFound

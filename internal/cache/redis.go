@@ -17,7 +17,6 @@ const (
 	PrefixAvatar = "sync:avatar:"
 )
 
-// rateLimitLua runs atomic INCR and sets TTL on key creation, returning {count, ttl_remaining}
 var rateLimitLua = redis.NewScript(`
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then
@@ -89,7 +88,6 @@ func (r *RedisClient) Close() error {
 	return r.client.Close()
 }
 
-// Incr atomically increments key and returns current count + TTL remaining.
 func (r *RedisClient) Incr(ctx context.Context, key string, ttl time.Duration) (int64, time.Duration, error) {
 	res, err := rateLimitLua.Run(ctx, r.client, []string{key}, int(ttl.Seconds())).Result()
 	if err != nil {
@@ -110,14 +108,12 @@ func (r *RedisClient) Incr(ctx context.Context, key string, ttl time.Duration) (
 	return count, time.Duration(ttlSec) * time.Second, nil
 }
 
-// parseRedisURL attempts standard ParseURL, and falls back to escaping unencoded special characters in the password.
 func parseRedisURL(rawURL string) (*redis.Options, error) {
 	opts, err := redis.ParseURL(rawURL)
 	if err == nil {
 		return opts, nil
 	}
 
-	// If failed, check if password contains unencoded special characters like '@'
 	if strings.HasPrefix(rawURL, "redis://") {
 		trimmed := strings.TrimPrefix(rawURL, "redis://")
 		lastAt := strings.LastIndex(trimmed, "@")

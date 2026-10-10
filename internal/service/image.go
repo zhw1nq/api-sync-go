@@ -77,14 +77,6 @@ func (s *ImageService) CacheDefaultAvatar(ctx context.Context, steamID64 string)
 }
 
 func (s *ImageService) GetCompressedAvatar(ctx context.Context, steamID64, imageURL string) ([]byte, error) {
-	// 1. Check avatar cache
-	cached, err := s.cache.GetAvatar(ctx, steamID64)
-	if err == nil && len(cached) > 0 {
-		s.logger.Debug("avatar cache hit", slog.String("steamid", steamID64))
-		return cached, nil
-	}
-
-	// If no image URL provided, fallback to default avatar (TTL 7 days)
 	if imageURL == "" {
 		if setErr := s.CacheDefaultAvatar(ctx, steamID64); setErr != nil {
 			s.logger.Warn("failed to cache default avatar", slog.String("steamid", steamID64), slog.String("error", setErr.Error()))
@@ -92,9 +84,7 @@ func (s *ImageService) GetCompressedAvatar(ctx context.Context, steamID64, image
 		return s.defaultAvatar, nil
 	}
 
-	// 2. Fetch + compress with singleflight deduplication
 	val, err, _ := s.sf.Do(steamID64, func() (any, error) {
-		// Double-check cache inside singleflight
 		if recheck, rErr := s.cache.GetAvatar(ctx, steamID64); rErr == nil && len(recheck) > 0 {
 			return recheck, nil
 		}
@@ -118,19 +108,16 @@ func (s *ImageService) GetCompressedAvatar(ctx context.Context, steamID64, image
 			return nil, fmt.Errorf("image fetch returned %d", resp.StatusCode)
 		}
 
-		// Limit read to 10MB
 		srcBytes, readErr := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
 		if readErr != nil {
 			return nil, fmt.Errorf("read image body: %w", readErr)
 		}
 
-		// Compress
 		compressed, compErr := imgutil.CompressAvatar(srcBytes, s.cfg.AvatarSize, s.cfg.AvatarQuality)
 		if compErr != nil {
 			return nil, fmt.Errorf("compress avatar: %w", compErr)
 		}
 
-		// Cache compressed bytes
 		if setErr := s.cache.SetAvatar(ctx, steamID64, compressed); setErr != nil {
 			s.logger.Warn("failed to cache avatar", slog.String("steamid", steamID64), slog.String("error", setErr.Error()))
 		}
@@ -146,7 +133,6 @@ func (s *ImageService) GetCompressedAvatar(ctx context.Context, steamID64, image
 }
 
 func normalizeImageURL(rawURL string) string {
-	// Discord media proxy: replace format=webp with format=png for maximum decoding compatibility
 	if (strings.Contains(rawURL, "media.discordapp.net") || strings.Contains(rawURL, "cdn.discordapp.com")) && strings.Contains(rawURL, "format=webp") {
 		return strings.Replace(rawURL, "format=webp", "format=png", 1)
 	}

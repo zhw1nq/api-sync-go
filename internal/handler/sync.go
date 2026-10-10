@@ -12,7 +12,6 @@ import (
 	"api-sync-go/internal/service"
 )
 
-// isValidSteamID verifies SteamID64 format (exactly 17 decimal digits) with zero allocations.
 func isValidSteamID(s string) bool {
 	if len(s) != 17 {
 		return false
@@ -51,8 +50,6 @@ func (h *SyncHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	info, err := h.userService.GetBySteamID(r.Context(), steamID)
 	if err != nil {
 		if errors.Is(err, service.ErrUserNotFound) {
-			// Case: User has no account -> return guest info (success = false)
-			// SteamID64 17 digits: bỏ tiền tố 7656119, giữ lại phần đuôi
 			shortSteamID := strings.TrimPrefix(steamID, "7656119")
 			writeJSON(w, http.StatusOK, model.APIResponse{
 				Success: false,

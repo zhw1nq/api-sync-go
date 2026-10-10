@@ -34,18 +34,15 @@ func (h *AvatarHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Check avatar cache directly
 	cached, err := h.imageService.GetCachedAvatar(r.Context(), steamID)
 	if err == nil && len(cached) > 0 {
 		h.serveJPEG(w, r, steamID, cached)
 		return
 	}
 
-	// 2. Query user info
 	info, err := h.userService.GetBySteamID(r.Context(), steamID)
 	if err != nil {
 		if errors.Is(err, service.ErrUserNotFound) {
-			// User does not exist in DB: fallback to default avatar (TTL 7 days)
 			defaultAvatar := h.imageService.GetDefaultAvatar()
 			_ = h.imageService.CacheDefaultAvatar(r.Context(), steamID)
 			h.serveJPEG(w, r, steamID, defaultAvatar)
@@ -60,7 +57,6 @@ func (h *AvatarHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. User exists: if image is null/empty in DB, fallback to default avatar (TTL 7 days)
 	if info.Image == "" {
 		defaultAvatar := h.imageService.GetDefaultAvatar()
 		_ = h.imageService.CacheDefaultAvatar(r.Context(), steamID)
@@ -68,7 +64,6 @@ func (h *AvatarHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4. Fetch + compress custom avatar from URL
 	jpegBytes, err := h.imageService.GetCompressedAvatar(r.Context(), steamID, info.Image)
 	if err != nil {
 		h.logger.Warn("compress avatar failed, falling back to default",
